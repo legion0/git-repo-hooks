@@ -1,0 +1,4 @@
+#!python
+import os, hookManager
+_, scriptName = os.path.split(__file__)
+exit(hookManager.processHooks(scriptName))
