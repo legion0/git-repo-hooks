@@ -10,7 +10,7 @@ def main(args):
 	if repoDir is None:
 		die('Not in a repository.')
 	gitconfigDir = os.path.join(repoDir, 'gitconfig')
-	shutil.copytree(os.path.join(SCRIPT_DIR, 'hooks'), os.path.join(gitconfigDir, 'hooks'))
+	copytree(os.path.join(SCRIPT_DIR, 'hooks'), os.path.join(gitconfigDir, 'hooks'))
 	allHooks = getAllHooks()
 	hooksDir = os.path.join(repoDir, '.git', 'hooks')
 	shutil.move(os.path.join(SCRIPT_DIR, 'hookManager.py'), os.path.join(hooksDir, 'hookManager.py'))
@@ -22,6 +22,15 @@ def main(args):
 				shutil.move(dest, os.path.join(gitconfigDir, 'hooks', hook, hook + '.hook'))
 			shutil.move(src, dest)
 	shutil.rmtree(SCRIPT_DIR)
+
+def copytree(src, dst):
+	if not os.path.exists(dst) or os.path.isfile(dst):
+		shutil.copy(src, dst)
+	elif os.path.isdir(dst):
+		for fileName in os.listdir(src):
+			copytree(os.path.join(src, fileName), os.path.join(dst, fileName))
+	else:
+		print >> sys.stderr, src, " > ", dst, "?"
 
 def getAllHooks():
 	hooks = []
