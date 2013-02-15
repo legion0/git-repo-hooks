@@ -1,17 +1,21 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import os, sys, shutil
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 ALL_HOOKS_DIR = os.path.join(SCRIPT_DIR, 'hooks')
+allHooks = None
 
 def main(args):
-	shutil.rmtree(os.path.join(SCRIPT_DIR, '.git'))
+	global allHooks
+	selfGit = os.path.join(SCRIPT_DIR, '.git')
+	if os.path.exists(selfGit):
+		shutil.rmtree(selfGit)
 	repoDir = getRepoDir(SCRIPT_DIR)
 	if repoDir is None:
 		die('Not in a repository.')
 	gitconfigDir = os.path.join(repoDir, 'gitconfig')
-	copytree(os.path.join(SCRIPT_DIR, 'hooks'), os.path.join(gitconfigDir, 'hooks'))
 	allHooks = getAllHooks()
+	prepareGitConfig(gitconfigDir, allHooks)
 	hooksDir = os.path.join(repoDir, '.git', 'hooks')
 	shutil.move(os.path.join(SCRIPT_DIR, 'hookManager.py'), os.path.join(hooksDir, 'hookManager.py'))
 	for hook in allHooks:
@@ -23,14 +27,18 @@ def main(args):
 			shutil.move(src, dest)
 	shutil.rmtree(SCRIPT_DIR)
 
-def copytree(src, dst):
-	if not os.path.exists(dst) or os.path.isfile(dst):
-		shutil.copy(src, dst)
-	elif os.path.isdir(dst):
-		for fileName in os.listdir(src):
-			copytree(os.path.join(src, fileName), os.path.join(dst, fileName))
-	else:
-		print >> sys.stderr, src, " > ", dst, "?"
+def prepareGitConfig(gitconfigDir, hooks):
+	hooksDir = os.path.join(gitconfigDir, 'hooks')
+	if not os.path.exists(hooksDir):
+		os.makedirs(hooksDir)
+	for hook in allHooks:
+		directory = os.path.join(hooksDir, hook)
+		if not os.path.isdir(directory):
+			if os.path.exists(directory):
+				shutil.move(directory, directory + '.hook')
+			os.mkdir(directory)
+			if os.path.exists(directory + '.hook'):
+				shutil.move(directory + '.hook', directory)
 
 def getAllHooks():
 	hooks = []
