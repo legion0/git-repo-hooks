@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/python
 import os, sys, shutil
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -9,20 +9,19 @@ def main(args):
 	repoDir = getRepoDir(SCRIPT_DIR)
 	if repoDir is None:
 		die('Not in a repository.')
+	gitconfigDir = os.path.join(repoDir, 'gitconfig')
+	shutil.copytree(os.path.join(SCRIPT_DIR, 'hooks'), os.path.join(gitconfigDir, 'hooks'))
 	allHooks = getAllHooks()
-	print allHooks
 	hooksDir = os.path.join(repoDir, '.git', 'hooks')
 	shutil.move(os.path.join(SCRIPT_DIR, 'hookManager.py'), os.path.join(hooksDir, 'hookManager.py'))
 	for hook in allHooks:
 		src = os.path.join(SCRIPT_DIR, 'hooks', hook, '_' + hook)
-		print src, '>'
 		if os.path.exists(src):
 			dest = os.path.join(hooksDir, hook)
-			print '>', dest
 			if os.path.exists(dest):
-				shutil.move(dest, os.path.join(SCRIPT_DIR, 'hooks', hook, hook + '.hook'))
+				shutil.move(dest, os.path.join(gitconfigDir, 'hooks', hook, hook + '.hook'))
 			shutil.move(src, dest)
-	os.remove(os.path.join(SCRIPT_DIR, 'install.py'))
+	shutil.rmtree(SCRIPT_DIR)
 
 def getAllHooks():
 	hooks = []
