@@ -9,7 +9,9 @@ Installation:
 
 cd to your repository
 
-run: git clone git@github.com:legion0/gitHookManager.git && cd gitHookManager && ./install.py
+run: git clone git@github.com:legion0/gitHookManager.git && ./gitHookManager/install.py
+
+delete gitHookManager directory
 
 
 To add hooks store them in gitconfig/hooks in the appropriate directory with extension '.hook'.
