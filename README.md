@@ -7,9 +7,7 @@ Requires python (tested only on 2.7)
 
 Installation:
 
-cd to your repository
-
-run: git clone git@github.com:legion0/gitHookManager.git && ./gitHookManager/install.py
+run: git clone git@github.com:legion0/gitHookManager.git && cd gitHookManager && ./setup.py install
 
 delete gitHookManager directory
 
