@@ -1,57 +1,52 @@
 #!/usr/bin/env python
-import os, sys, shutil
+import os, sys, shutil, stat
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
-ALL_HOOKS_DIR = os.path.join(SCRIPT_DIR, 'hooks')
-allHooks = None
+
+HOOKS = [
+	"applypatch-msg", "pre-applypatch", "post-applypatch",
+	"pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",
+	"pre-rebase", "post-checkout", "post-merge", "pre-receive",
+	"update", "post-receive", "post-update",
+	"pre-auto-gc", "post-rewrite"
+]
+
+HOOK_TEMPLATE = """#!/usr/bin/env python
+import os, hookManager
+_, scriptName = os.path.split(__file__)
+exit(hookManager.processHooks(scriptName))"""
 
 def main(args):
-	global allHooks
-	selfGit = os.path.join(SCRIPT_DIR, '.git')
-	if os.path.exists(selfGit):
-		shutil.rmtree(selfGit)
-	repoDir = getRepoDir(SCRIPT_DIR)
-	if repoDir is None:
-		die('Not in a repository.')
-	gitconfigDir = os.path.join(repoDir, 'gitconfig')
-	allHooks = getAllHooks()
-	prepareGitConfig(gitconfigDir, allHooks)
+	repoDir = os.getcwd()
+	if not ".git" in os.listdir(repoDir):
+		die('Not in a repository: ' + repoDir)
 	hooksDir = os.path.join(repoDir, '.git', 'hooks')
-	shutil.move(os.path.join(SCRIPT_DIR, 'hookManager.py'), os.path.join(hooksDir, 'hookManager.py'))
-	for hook in allHooks:
-		src = os.path.join(SCRIPT_DIR, 'hooks', hook, '_' + hook)
-		if os.path.exists(src):
-			dest = os.path.join(hooksDir, hook)
-			if os.path.exists(dest):
-				shutil.move(dest, os.path.join(gitconfigDir, 'hooks', hook, hook + '.hook'))
-			shutil.move(src, dest)
-	shutil.rmtree(SCRIPT_DIR)
-
-def prepareGitConfig(gitconfigDir, hooks):
-	hooksDir = os.path.join(gitconfigDir, 'hooks')
-	if not os.path.exists(hooksDir):
-		os.makedirs(hooksDir)
-	for hook in allHooks:
-		directory = os.path.join(hooksDir, hook)
-		if not os.path.isdir(directory):
-			if os.path.exists(directory):
-				shutil.move(directory, directory + '.hook')
-			os.mkdir(directory)
-			if os.path.exists(directory + '.hook'):
-				shutil.move(directory + '.hook', directory)
-
-def getAllHooks():
-	hooks = []
-	for fileName in os.listdir(ALL_HOOKS_DIR):
-		filePath = os.path.join(ALL_HOOKS_DIR, fileName)
-		if os.path.isdir(filePath):
-			hooks.append(fileName)
-	return hooks
-
-def getRepoDir(directory):
-	while '.git' not in os.listdir(directory) and directory != '/':
-		directory, _ = os.path.split(directory)
-	return directory if '.git' in os.listdir(directory) else None
+	newHooksDir = os.path.join(repoDir, 'gitconfig', "hooks")
+	if os.path.exists(newHooksDir):
+		die("Cannot create new hooks directory: \"" + newHooksDir + "\", aborting.")
+	
+	if os.path.exists(os.path.join(hooksDir, 'hookManager.py')):
+		# Do update only:
+		for hook in HOOKS:
+			oldHookPath = os.path.join(hooksDir, hook)
+			with open(oldHookPath, "w") as f:
+				f.write(HOOK_TEMPLATE)
+			st = os.stat(oldHookPath)
+			os.chmod(oldHookPath, st.st_mode | stat.S_IEXEC)
+		exit(0)
+	
+	shutil.copy(os.path.join(SCRIPT_DIR, 'hookManager.py'), os.path.join(hooksDir, 'hookManager.py'))
+	for hook in HOOKS:
+		oldHookPath = os.path.join(hooksDir, hook)
+		newHookDir = os.path.join(newHooksDir, hook)
+		if not os.path.isdir(newHookDir):
+			os.makedirs(newHookDir)
+		if os.path.exists(oldHookPath):
+			shutil.move(oldHookPath, os.path.join(newHookDir, hook + '.hook'))
+		with open(oldHookPath, "w") as f:
+			f.write(HOOK_TEMPLATE)
+		st = os.stat(oldHookPath)
+		os.chmod(oldHookPath, st.st_mode | stat.S_IEXEC)
 
 def die(msg = None, exitcode = 1):
 	if msg is not None:

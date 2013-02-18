@@ -1,22 +1,34 @@
-#!python
-import os, sys, shutil, subprocess
+import os, sys, stat, shutil, subprocess
 
 SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 HOOKSDIR = os.path.join(SCRIPT_DIR, '..', '..', 'gitconfig', 'hooks')
 
 def processHooks(hook):
+	argv = sys.argv[1:]
+	print "DEBUG: processing hook: ", str(argv)
 	hookDir = os.path.join(HOOKSDIR, hook)
-	cwd = os.getcwd()
 	repoDir = getRepoDir(SCRIPT_DIR)
 	if repoDir is None:
 		die('Not in a repository.')
-	#os.chdir(repoDir)
-	for fileName in os.listdir(hookDir):
-		if fileName.endswith('.hook'):
-			filePath = os.path.join(hookDir, fileName)
-			returncode = subprocess.call([filePath])
-			if returncode != 0:
-				return returncode
+	fileNames = os.listdir(hookDir)
+	if len(fileNames) > 0:
+		for fileName in fileNames:
+			if fileName.endswith('.hook'):
+				print "DEBUG: found hook: ", fileName
+				filePath = os.path.join(hookDir, fileName)
+				exe = os.stat(filePath).st_mode & stat.S_IEXEC
+				if exe:
+					cmd = [filePath]
+					cmd.extend(argv)
+					returncode = subprocess.call(cmd)
+					print "DEBUG: hook returned: ", returncode
+					if returncode != 0:
+						return returncode
+				else:
+					print >> sys.stderr, "ERROR: hook is not executable."
+	else:
+		print "DEBUG: no hooks found"
+	print "DEBUG: all ok for hook: ", hook
 	return 0
 
 def getRepoDir(directory):
