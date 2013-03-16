@@ -37,15 +37,15 @@ setattr(GLOBAL, 'safeUsername', None); GLOBAL.safeUsername = None
 
 def main(argv):
     print
-    
+
     GLOBAL.repoDir = Git.getRepoDir()
     GLOBAL.safeUsername = Git.getSafeUsername()
-    
-    modname = globals()['__name__'] 
-    module = sys.modules[modname] 
+
+    modname = globals()['__name__']
+    module = sys.modules[modname]
     commands = [x for x in dir(module) if x.startswith("cmd_")]
     commands = dict(zip(commands, [getattr(module, x) for x in commands]))
-    
+
     cmdStr = "help" # default command
     userCommand = False
     if len(argv) > 0:
@@ -147,7 +147,7 @@ def cmd_run(argv):
         _die("INTERNAL: %s is not a recognized hookType." % hookType)
     print "Runing User, Project, and Global hooks for %s:" % hookType
     hookDirs = getHookDirs()
-    allHooks = getAllHooks()
+    allHooks = getHooksByType(hookType)
     for dirType, hooks in allHooks.iteritems():
         hookDir = hookDirs[dirType]
         if not os.path.exists(hookDir) and dirType != "Global":
@@ -203,7 +203,7 @@ def getHooksByDirectory(directory):
         dirHooks = getHookByDirectoryType(directory, hook)
         hooks.extend(dirHooks)
     return hooks
-    
+
 def getHookByDirectoryType(directory, hookType):
     hookDir = os.path.join(directory, hookType)
     hooks = []
