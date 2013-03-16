@@ -10,7 +10,7 @@ The commands are:
    list       List all the User, Project, Global hooks for the project or only Global if not in a repository.
    install    Prepare a git repository for User, Project hooks.
 
-Hooks should always end in '.hook' and be executable.
+To disable a hook add a .bkp extension.
 
 For Global hooks place them in ~/.gitconfig/hooks under seperate folders (same structure as <gitProject>/.gitconfig/hooks/project)
 
@@ -25,7 +25,7 @@ HOOK_NAMES = [
 ]
 
 HOOK_TEMPLATE = """#!/usr/bin/env python
-import os, sys, subprocess
+import os, subprocess
 _, hookType = os.path.split(__file__)
 exit(subprocess.call(["git", "hooks", "run", hookType]))"""
 
@@ -121,7 +121,7 @@ def cmd_install(argv):
         for hook in HOOK_NAMES:
             oldHookPath = os.path.join(GLOBAL.repoDir, ".git", "hooks", hook)
             if os.path.exists(oldHookPath):
-                newHookPath = os.path.join(hookDirs["Project"], hook, hook + "-orig.hook")
+                newHookPath = os.path.join(hookDirs["Project"], hook, hook + "-orig")
                 print "\t%s -> %s" % (oldHookPath, newHookPath)
                 shutil.move(oldHookPath, newHookPath)
     writeMyHooks()
@@ -213,7 +213,7 @@ def getHookByDirectoryType(directory, hookType):
     return hooks
 
 def goodHook(filePath):
-    return filePath.endswith(".hook") and canExecute(filePath)
+    return (not filePath.endswith(".bkp")) and canExecute(filePath)
 
 def canExecute(filePath):
     return os.stat(filePath).st_mode & stat.S_IEXEC
