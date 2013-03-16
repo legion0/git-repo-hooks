@@ -16,6 +16,8 @@ For Global hooks place them in ~/.gitconfig/hooks under seperate folders (same s
 
 See 'git hooks help <command>' for more information on a specific command."""
 
+PRINT_RUN_MESSAGES = True
+
 HOOK_NAMES = [
     "applypatch-msg", "pre-applypatch", "post-applypatch",
     "pre-commit", "prepare-commit-msg", "commit-msg", "post-commit",
@@ -36,8 +38,6 @@ setattr(GLOBAL, 'repoDir', None); GLOBAL.repoDir = None
 setattr(GLOBAL, 'safeUsername', None); GLOBAL.safeUsername = None
 
 def main(argv):
-    print
-
     GLOBAL.repoDir = Git.getRepoDir()
     GLOBAL.safeUsername = Git.getSafeUsername()
 
@@ -145,7 +145,8 @@ def cmd_run(argv):
     hookType = argv[0]
     if hookType not in HOOK_NAMES:
         _die("INTERNAL: %s is not a recognized hookType." % hookType)
-    print "Runing User, Project, and Global hooks for %s:" % hookType
+    if PRINT_RUN_MESSAGES:
+		print "Runing User, Project, and Global hooks for %s:" % hookType
     hookDirs = getHookDirs()
     allHooks = getHooksByType(hookType)
     for dirType, hooks in allHooks.iteritems():
@@ -153,18 +154,23 @@ def cmd_run(argv):
         if not os.path.exists(hookDir) and dirType != "Global":
             _die("'%s' is a missing hook directory (deleted?, user.name changed?)." % hookDir)
         if len(hooks) > 0:
-            print "%s:" % dirType
-            for hook in hooks:
-                print "\t%s" % hook, "..."
-                sys.stdout.flush()
-                hookPath = os.path.join(hookDir, hook)
-                returncode = runSingle(hookPath, argv[1:])
-                if returncode == 0:
-                    print "\tOK."
-                else:
-                    print "\tFail (%s)." % returncode
-                    _die()
-    print "OK."
+			if PRINT_RUN_MESSAGES:
+				print "%s:" % dirType
+			for hook in hooks:
+				if PRINT_RUN_MESSAGES:
+					print "\t%s" % hook, "..."
+				sys.stdout.flush()
+				hookPath = os.path.join(hookDir, hook)
+				returncode = runSingle(hookPath, argv[1:])
+				if returncode == 0:
+					if PRINT_RUN_MESSAGES:
+						print "\tOK."
+				else:
+					if PRINT_RUN_MESSAGES:
+						print "\tFail (%s)." % returncode
+					_die()
+    if PRINT_RUN_MESSAGES:
+		print "OK."
 
 def runSingle(filePath, argv = []):
     cmd = [filePath]
