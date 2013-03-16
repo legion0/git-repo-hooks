@@ -1,14 +1,19 @@
 gitHookManager
 ==============
 
-Store your git hooks inside the repo
+Store your git hooks inside the repository.
 
 Requires python (tested only on 2.7)
 
 Installation:
 
-run: `git clone git@github.com:legion0/gitHookManager.git && cd gitHookManager && ./setup.py install`
+run: `git clone git://github.com/legion0/gitHookManager.git && cd gitHookManager && chmod +x ./setup.py && ./setup.py install`.
 
-run `git hooks help` for more info.
+This will install the `git-hooks` command.
 
-enjoy, and please report bugs or feature requests :)
+To install the functionality into a specific repository run `git hooks install` in the repository directory.
+
+Run `git hooks help` for more info.
+
+
+Enjoy, and please report bugs or feature requests :)
