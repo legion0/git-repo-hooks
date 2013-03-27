@@ -4,6 +4,8 @@ import os, sys, shutil, stat, subprocess, re
 import yaml
 from collections import OrderedDict
 
+CONFIG_DIRECTORY = ".gitconfigs"
+
 USAGE_MSG = """usage: git hooks <command>
 
 The commands are:
@@ -13,8 +15,8 @@ The commands are:
 
 To disable a hook add a .bkp extension.
 
-For Global hooks place them in ~/.gitconfig/hooks under seperate folders
-(same structure as <gitProject>/.gitconfig/hooks/project).
+For Global hooks place them in ~/.gitconfigs/hooks under seperate folders
+(same structure as <gitProject>/.gitconfigs/hooks/project).
 
 See 'git hooks help <command>' for more information on a specific command."""
 
@@ -198,9 +200,9 @@ def getHooksByType(hookType):
 def getHookDirs():
 	d = OrderedDict()
 	if GLOBAL.repoDir is not None:
-		d["User"] = os.path.join(GLOBAL.repoDir, ".gitconfig", "hooks", "user", GLOBAL.safeUsername)
-		d["Project"] = os.path.join(GLOBAL.repoDir, ".gitconfig", "hooks", "project")
-	d["Global"] = os.path.join(HOME_DIR, ".gitconfig", "hooks")
+		d["User"] = os.path.join(GLOBAL.repoDir, CONFIG_DIRECTORY, "hooks", "user", GLOBAL.safeUsername)
+		d["Project"] = os.path.join(GLOBAL.repoDir, CONFIG_DIRECTORY, "hooks", "project")
+	d["Global"] = os.path.join(HOME_DIR, CONFIG_DIRECTORY, "hooks")
 	return d
 
 def getHooksByDirectory(directory):
@@ -247,3 +249,4 @@ def _exit(msg = None):
 
 if __name__=="__main__":
 	main(sys.argv[1:])
+
