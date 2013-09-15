@@ -1,10 +1,22 @@
 #!/usr/bin/env python
-
+__APP_NAME__ = "git_repo_hooks"
 import os, sys, shutil, stat, subprocess, re
-import yaml
 from collections import OrderedDict
 
+try:
+	import kjlib
+	kjlib.require("1.06.02")
+	from kjlib import debugtools
+	DATA_DIR = debugtools.DATA_DIR
+	from kjlib.debugtools import DebugTools, dumps, die
+	DEBUG_LEVEL = DebugTools.DEBUG_LEVEL
+	DebugTools.debugLevel = DEBUG_LEVEL.DEBUG
+except ImportError:
+	print >> sys.stderr, "This program requires kjlib package (Available in pypi)."
+	exit(-1)
+
 CONFIG_DIRECTORY = ".gitconfigs"
+GLOBAL_HOOKS_DIR = os.path.join(DATA_DIR, "global_hooks")
 
 USAGE_MSG = """usage: git hooks <command>
 
@@ -13,14 +25,12 @@ The commands are:
              Global if not in a repository.
     install  Prepare a git repository for User, Project hooks.
 
-To disable a hook add a .bkp extension.
+To disable a hook make it non executable or add a .bkp extension.
 
-For Global hooks place them in ~/.gitconfigs/hooks under seperate folders
+For Global hooks place them in ~/.data/git_repo_hooks/global_hooks/ under seperate folders
 (same structure as <gitProject>/.gitconfigs/hooks/project).
 
 See 'git hooks help <command>' for more information on a specific command."""
-
-PRINT_RUN_MESSAGES = True
 
 HOOK_NAMES = [
 	"applypatch-msg", "pre-applypatch", "post-applypatch",
@@ -34,8 +44,6 @@ HOOK_TEMPLATE = """#!/usr/bin/env python
 import os, subprocess
 _, hookType = os.path.split(__file__)
 exit(subprocess.call(["git", "hooks", "run", hookType]))"""
-
-HOME_DIR = os.getenv('HOME') or os.getenv('USERPROFILE')
 
 GLOBAL = lambda:None
 setattr(GLOBAL, 'repoDir', None); GLOBAL.repoDir = None
@@ -58,7 +66,7 @@ def main(argv):
 	cmd = "cmd_" + cmdStr
 	cmd = commands.get(cmd)
 	if cmd is None:
-		_die("git: '%s' is not a git-hooks command." % cmdStr)
+		die("git: '%s' is not a git-hooks command." % cmdStr)
 	cmd(argv[1:])
 
 class Git:
@@ -108,9 +116,9 @@ def cmd_list(argv):
 
 def cmd_install(argv):
 	if GLOBAL.repoDir is None:
-		_die("git-hooks install must be run inside a git repository.")
+		die("git-hooks install must be run inside a git repository.")
 	if GLOBAL.safeUsername is None:
-		_die("git-hooks install requires a git username (local or global).\nSee: user.name in git help config.")
+		die("git-hooks install requires a git username (local or global).\nSee: user.name in git help config.")
 	hookDirs = getHookDirs()
 	isInstalled = os.path.exists(hookDirs["Project"])
 	if not isInstalled:
@@ -145,36 +153,30 @@ def writeMyHooks():
 
 def cmd_run(argv):
 	if len(argv) < 1:
-		_die("INTERNAL: git-hooks run needs a hookType parameter.")
+		die("INTERNAL: git-hooks run needs a hookType parameter.")
 	hookType = argv[0]
 	if hookType not in HOOK_NAMES:
-		_die("INTERNAL: %s is not a recognized hookType." % hookType)
-	if PRINT_RUN_MESSAGES:
-		print "Runing User, Project, and Global hooks for %s:" % hookType
+		die("INTERNAL: %s is not a recognized hookType." % hookType)
+	DebugTools.println("Runing User, Project, and Global hooks for %s:" % hookType, DEBUG_LEVEL.DEBUG)
 	hookDirs = getHookDirs()
 	allHooks = getHooksByType(hookType)
 	for dirType, hooks in allHooks.iteritems():
 		hookDir = hookDirs[dirType]
 		if not os.path.exists(hookDir) and dirType != "Global":
-			_die("'%s' is a missing hook directory (deleted?, user.name changed?)." % hookDir)
+			die("'%s' is a missing hook directory (deleted?, user.name changed?)." % hookDir)
 		if len(hooks) > 0:
-			if PRINT_RUN_MESSAGES:
-				print "%s:" % dirType
+			DebugTools.println("%s:" % dirType, DEBUG_LEVEL.DEBUG)
 			for hook in hooks:
-				if PRINT_RUN_MESSAGES:
-					print "\t%s" % hook, "..."
+				DebugTools.println("\t%s ..." % hook, DEBUG_LEVEL.DEBUG)
 				sys.stdout.flush()
 				hookPath = os.path.join(hookDir, hook)
 				returncode = runSingle(hookPath, argv[1:])
 				if returncode == 0:
-					if PRINT_RUN_MESSAGES:
-						print "\tOK."
+					DebugTools.println("\tOK.", DEBUG_LEVEL.DEBUG)
 				else:
-					if PRINT_RUN_MESSAGES:
-						print "\tFail (%s)." % returncode
-					_die()
-	if PRINT_RUN_MESSAGES:
-		print "OK."
+					DebugTools.println("\tFail (%s)." % returncode, DEBUG_LEVEL.DEBUG)
+					die()
+	DebugTools.println("OK.", DEBUG_LEVEL.DEBUG)
 
 def runSingle(filePath, argv = []):
 	cmd = [filePath]
@@ -182,7 +184,7 @@ def runSingle(filePath, argv = []):
 	try:
 		returncode = subprocess.call(cmd)
 	except OSError as e:
-		_die("OSError: %s" % e.strerror, e.errno)
+		die("OSError: %s" % e.strerror, e.errno)
 	return returncode
 
 def getAllHooks():
@@ -202,7 +204,7 @@ def getHookDirs():
 	if GLOBAL.repoDir is not None:
 		d["User"] = os.path.join(GLOBAL.repoDir, CONFIG_DIRECTORY, "hooks", "user", GLOBAL.safeUsername)
 		d["Project"] = os.path.join(GLOBAL.repoDir, CONFIG_DIRECTORY, "hooks", "project")
-	d["Global"] = os.path.join(HOME_DIR, CONFIG_DIRECTORY, "hooks")
+	d["Global"] = GLOBAL_HOOKS_DIR
 	return d
 
 def getHooksByDirectory(directory):
@@ -227,25 +229,6 @@ def goodHook(filePath):
 
 def canExecute(filePath):
 	return os.stat(filePath).st_mode & stat.S_IEXEC
-
-def yamldump(o):
-	return yaml.dump(o, default_flow_style=False)
-
-def _die(msg = None, returncode = 1):
-	_err(msg, returncode)
-	exit(returncode)
-
-def _err(msg, errorCode = None):
-	if msg is not None:
-		if errorCode is not None:
-			print >> sys.stderr, "ERROR: %s (%s)" % (msg, errorCode)
-		else:
-			print >> sys.stderr, "ERROR: %s" % msg
-
-def _exit(msg = None):
-	if msg is not None:
-		print msg
-	exit(0)
 
 if __name__=="__main__":
 	main(sys.argv[1:])

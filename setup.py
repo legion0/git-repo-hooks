@@ -7,12 +7,12 @@ Created on Feb 18, 2013
 from setuptools import setup
 setup(
 	name = "git-repo-hooks",
-	version = "1.01.003",
+	version = "1.01.004",
 	scripts = ['git-hooks'],
 
 	# Project uses reStructuredText, so ensure that the docutils get
 	# installed or upgraded on the target machine
-	install_requires = ['PyYAML'],
+	install_requires = ['kjlib'],
 
 	# metadata for upload to PyPI
     author='K Jonathan',
