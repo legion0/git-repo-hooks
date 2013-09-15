@@ -8,17 +8,12 @@ from distutils.core import setup
 
 
 
-setup(name='Git Hook Manager',
-    version='0.00.001',
+setup(name='git-repo-hooks',
+    version='1.01.001',
     description='A tool to manage project, user, and global Git hooks for multiple git repositories',
-    author='Kibarski Jonathan',
+    author='K Jonathan',
     author_email='phenixdoc@gmail.com',
-    url='https://github.com/legion0/gitHookManager',
+    url='https://github.com/legion0/git-repo-hooks',
     packages=[],
-#    entry_points = {
-#        'console_scripts': [
-#            'git-hooks = git-hooks',
-#        ],
-#    },
     scripts=['git-hooks'],
     )
